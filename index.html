@@ -14,30 +14,37 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;background:var(--bg);color:#202124;font-size:15px;padding-bottom:70px}
-header{background:var(--blue);color:#fff;padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between}
-header h1{font-size:16px;font-weight:600}
+header{background:linear-gradient(135deg,var(--blue),var(--blue-d));color:#fff;padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 6px rgba(13,42,77,.25)}
+header h1{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+.ic-svg{vertical-align:-4px;flex:none}
 #syncState{font-size:11px;opacity:.9}
 main{max-width:640px;margin:0 auto;padding:12px}
 .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:10;padding-bottom:env(safe-area-inset-bottom)}
 .tabbar button{flex:1;border:none;background:none;padding:8px 0 6px;font-size:11px;color:var(--gray);cursor:pointer}
-.tabbar button .ic{display:block;font-size:20px;line-height:1.2}
+.tabbar button .ic{display:block;height:24px;margin-bottom:2px}
+.tabbar button .ic svg{display:block;margin:0 auto}
 .tabbar button.on{color:var(--blue);font-weight:600}
 .badge-dot{position:relative}
 .badge-dot[data-n]:not([data-n="0"])::after{content:attr(data-n);position:absolute;top:2px;right:22%;background:var(--ng);color:#fff;font-size:10px;border-radius:9px;padding:0 5px;line-height:15px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(16,35,60,.05)}
 .card h2{font-size:15px;color:var(--blue-d);margin-bottom:10px}
 label{display:block;font-size:12px;color:var(--gray);margin:10px 0 4px}
 input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px;background:#fff;font-family:inherit}
 textarea{min-height:70px}
 .row{display:flex;gap:8px}.row>*{flex:1}
-.btn{display:block;width:100%;padding:13px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border:none;border-radius:12px;background:var(--blue);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:14px;box-shadow:0 2px 5px rgba(26,92,158,.25)}
 .btn:disabled{background:#9ab}
-.btn.sub{background:#eef2f7;color:var(--blue-d);border:1px solid var(--line)}
-.btn.ok{background:var(--ok)}.btn.ng{background:var(--ng)}
-.btn.sm{width:auto;display:inline-block;padding:8px 16px;font-size:13px;margin-top:8px}
+.btn.sub{background:#eef2f7;color:var(--blue-d);border:1px solid var(--line);box-shadow:none}
+.btn.ok{background:var(--ok);box-shadow:0 2px 5px rgba(30,142,62,.25)}
+.btn.ng{background:var(--ng);box-shadow:0 2px 5px rgba(197,34,31,.25)}
+.btn.sm{width:auto;display:inline-flex;padding:8px 16px;font-size:13px;margin-top:8px}
 .typegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.typegrid button{padding:18px 8px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:14px;font-weight:600;color:var(--blue-d);cursor:pointer}
-.typegrid button .ic{display:block;font-size:26px;margin-bottom:6px}
+.typegrid button{display:flex;flex-direction:column;align-items:center;gap:9px;padding:16px 8px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;font-size:14px;font-weight:600;color:var(--blue-d);cursor:pointer;box-shadow:0 1px 3px rgba(16,35,60,.05)}
+.typegrid .icwrap{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.icwrap.c1{background:#e3effb;color:#1a5c9e}
+.icwrap.c2{background:#e0f4f1;color:#0b7a6c}
+.icwrap.c3{background:#fdeede;color:#c96a10}
+.icwrap.c4{background:#e9e7fb;color:#5548b8}
 .item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer}
 .item .t1{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .item .ty{font-weight:600;font-size:14px}
@@ -86,7 +93,7 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
 </head>
 <body>
 <header>
-  <h1>申請・休暇届</h1>
+  <h1><span class="ic" data-ic="doc" data-s="20"></span>申請・休暇届</h1>
   <div id="syncState">未同期</div>
 </header>
 
@@ -96,10 +103,10 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
     <div class="card" id="typeSelect">
       <h2>新規申請（種類を選択）</h2>
       <div class="typegrid">
-        <button onclick="openForm('kyuka')"><span class="ic">🌴</span>休暇届</button>
-        <button onclick="openForm('hankyu')"><span class="ic">🕒</span>（半休）早退・遅刻届</button>
-        <button onclick="openForm('kyujitsu')"><span class="ic">🔨</span>休日出勤<br>事前申請書</button>
-        <button onclick="openForm('yakan')"><span class="ic">🌙</span>夜間出勤<br>事前申請書</button>
+        <button onclick="openForm('kyuka')"><span class="icwrap c1"><span class="ic" data-ic="calendar" data-s="24"></span></span>休暇届</button>
+        <button onclick="openForm('hankyu')"><span class="icwrap c2"><span class="ic" data-ic="clock" data-s="24"></span></span>（半休）早退・遅刻届</button>
+        <button onclick="openForm('kyujitsu')"><span class="icwrap c3"><span class="ic" data-ic="sun" data-s="24"></span></span>休日出勤<br>事前申請書</button>
+        <button onclick="openForm('yakan')"><span class="icwrap c4"><span class="ic" data-ic="moon" data-s="24"></span></span>夜間出勤<br>事前申請書</button>
       </div>
     </div>
 
@@ -127,7 +134,7 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
           <option value="pending">申請中のみ</option>
           <option value="done">決裁完了のみ</option>
         </select>
-        <button class="btn sm" style="margin:0" onclick="sync(true)">🔄 同期</button>
+        <button class="btn sm" style="margin:0" onclick="sync(true)"><span class="ic" data-ic="refresh" data-s="16"></span>同期</button>
       </div>
     </div>
     <div id="listBody"></div>
@@ -153,7 +160,7 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
         <label>同期URL（会社から案内されたURL）</label>
         <input id="setUrl" placeholder="https://script.google.com/macros/s/…/exec">
       </div>
-      <p class="note hide" id="urlBuiltin">✅ 同期URLはアプリに内蔵済みです。入力は不要です。</p>
+      <p class="note hide" id="urlBuiltin" style="color:var(--ok)"><span class="ic" data-ic="check" data-s="14"></span> 同期URLはアプリに内蔵済みです。入力は不要です。</p>
     </div>
     <div class="card">
       <h2>承認者設定（承認者のみ）</h2>
@@ -186,10 +193,10 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
 <div id="printArea" style="display:none"></div>
 
 <nav class="tabbar">
-  <button id="tb-new" class="on" onclick="showTab('new')"><span class="ic">📝</span>申請</button>
-  <button id="tb-approve" class="badge-dot" data-n="0" onclick="showTab('approve')"><span class="ic">🖊️</span>承認</button>
-  <button id="tb-list" class="badge-dot" data-n="0" onclick="showTab('list')"><span class="ic">📋</span>一覧</button>
-  <button id="tb-set" onclick="showTab('set')"><span class="ic">⚙️</span>設定</button>
+  <button id="tb-new" class="on" onclick="showTab('new')"><span class="ic" data-ic="pen" data-s="22"></span>申請</button>
+  <button id="tb-approve" class="badge-dot" data-n="0" onclick="showTab('approve')"><span class="ic" data-ic="stamp" data-s="22"></span>承認</button>
+  <button id="tb-list" class="badge-dot" data-n="0" onclick="showTab('list')"><span class="ic" data-ic="list" data-s="22"></span>一覧</button>
+  <button id="tb-set" onclick="showTab('set')"><span class="ic" data-ic="gear" data-s="22"></span>設定</button>
 </nav>
 
 <div class="toast" id="toast"></div>
@@ -222,6 +229,32 @@ if(!S.bu && S.dept){ const p=S.dept.split(/[ 　]+/); S.bu=p[0]||""; S.ka=p.slic
 let currentType = null;
 
 const $ = id => document.getElementById(id);
+/* ================= SVGアイコン（画像・オフライン対応） ================= */
+const ICONS = {
+  doc:      '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/>',
+  pen:      '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  stamp:    '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16.5 9"/>',
+  list:     '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2" fill="currentColor"/><circle cx="3.5" cy="12" r="1.2" fill="currentColor"/><circle cx="3.5" cy="18" r="1.2" fill="currentColor"/>',
+  gear:     '<circle cx="12" cy="12" r="3"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  clock:    '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2.5"/>',
+  sun:      '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/>',
+  moon:     '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
+  refresh:  '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>',
+  printer:  '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/>',
+  pdf:      '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M12 11v6M9 14.5l3 3 3-3"/>',
+  trash:    '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>',
+  chat:     '<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/>',
+  check:    '<path d="m4.5 12.5 5 5L19.5 6.5"/>',
+  x:        '<path d="M18 6 6 18M6 6l12 12"/>'
+};
+function icon(name, size, sw){
+  size = size || 18; sw = sw || 2;
+  return `<svg class="ic-svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||""}</svg>`;
+}
+function initIcons(){
+  document.querySelectorAll(".ic[data-ic]").forEach(el=>{ el.innerHTML = icon(el.dataset.ic, Number(el.dataset.s)||18); });
+}
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); setTimeout(()=>t.classList.remove("on"), 2600); }
 function saveLocal(){ localStorage.setItem("shinsei_apps", JSON.stringify(APPS)); localStorage.setItem("shinsei_queue", JSON.stringify(QUEUE)); }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
@@ -413,7 +446,7 @@ function itemHTML(a){
   const isNew = (a.name===S.name || S.role) && SEEN[a.id]!==stampOf(a);
   const nc = (a.comments||[]).length;
   return `<div class="item" onclick="openDetail('${a.id}')">
-    <div class="t1"><span class="ty">${isNew?'<span style="color:var(--ng)">●</span> ':''}${esc(TYPE_NAMES[a.type]||a.type)}${nc?` <span style="font-weight:normal;font-size:12px;color:var(--gray)">💬${nc}</span>`:''}</span><span class="st ${st}">${st}</span></div>
+    <div class="t1"><span class="ty">${isNew?'<span style="color:var(--ng)">●</span> ':''}${esc(TYPE_NAMES[a.type]||a.type)}${nc?` <span style="font-weight:normal;font-size:12px;color:var(--gray)">${icon("chat",12)}${nc}</span>`:''}</span><span class="st ${st}">${st}</span></div>
     <div class="meta">${esc(a.name)}（${esc(a.dept||"")}）</div>
     <div class="meta">${esc(dateLine)}${esc(next)}</div>
   </div>`;
@@ -442,7 +475,7 @@ function openDetail(id){
   dl+=`</dl>`;
 
   // コメント欄（役職者・申請者が書き込めます）
-  let cmt=`<div style="border-top:1px solid var(--line);padding-top:10px;margin-top:4px"><b style="font-size:14px">💬 コメント</b>`;
+  let cmt=`<div style="border-top:1px solid var(--line);padding-top:10px;margin-top:4px"><b style="font-size:14px;color:var(--blue-d)">${icon("chat",15)} コメント</b>`;
   const cs=a.comments||[];
   cmt+= cs.length
     ? cs.map(c=>`<div style="background:#f5f7fa;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:13px"><b>${esc(c.name)}</b>${c.role?`（${esc(c.role)}）`:""}<span style="color:var(--gray);font-size:11px">　${esc(c.date)}</span><br>${esc(c.text)}</div>`).join("")
@@ -453,17 +486,17 @@ function openDetail(id){
   let btns="";
   const isMyTurn = a.status==="申請中" && S.role && a.route[a.step]===S.role;
   if(isMyTurn){
-    btns+=`<button class="btn ok" onclick="approve('${a.id}')">✓ 承認する（${esc(S.role)}）</button>`;
-    btns+=`<button class="btn ng" onclick="reject('${a.id}')">✗ 却下する</button>`;
+    btns+=`<button class="btn ok" onclick="approve('${a.id}')">${icon("check",18)}承認する（${esc(S.role)}）</button>`;
+    btns+=`<button class="btn ng" onclick="reject('${a.id}')">${icon("x",18)}却下する</button>`;
   }
   if(a.status==="申請中" && a.name===S.name){
     btns+=`<button class="btn sub" onclick="cancelApp('${a.id}')">申請を取下げる</button>`;
   }
   if(S.adminKey){
-    btns+=`<button class="btn ng" onclick="adminDeleteApp('${a.id}')">🗑 この申請を削除（管理者）</button>`;
+    btns+=`<button class="btn ng" onclick="adminDeleteApp('${a.id}')">${icon("trash",18)}この申請を削除（管理者）</button>`;
   }
-  btns+=`<button class="btn sub" onclick="printSheet('${a.id}')">🖨️ 様式を表示・印刷</button>`;
-  btns+=`<button class="btn sub" onclick="sharePdfSheet('${a.id}')">📄 様式PDFを保存・共有</button>`;
+  btns+=`<button class="btn sub" onclick="printSheet('${a.id}')">${icon("printer",18)}様式を表示・印刷</button>`;
+  btns+=`<button class="btn sub" onclick="sharePdfSheet('${a.id}')">${icon("pdf",18)}様式PDFを保存・共有</button>`;
 
   $("modalBox").innerHTML=`<div class="mhead"><b>${esc(TYPE_NAMES[a.type])}</b><button class="x" onclick="closeModal()">✕</button></div>
     <div class="route">${route}</div>${dl}
@@ -567,7 +600,7 @@ function printSheet(id){
   const a=APPS.find(x=>x.id===id); if(!a) return;
   const wrap=$("sheetWrap");
   if(wrap.classList.contains("hide")){
-    wrap.innerHTML=sheetHTML(a)+`<button class="btn sm" onclick="doPrint('${id}')">🖨️ 印刷</button> <button class="btn sm" onclick="sharePdfSheet('${id}')">📄 PDF保存・共有</button>`;
+    wrap.innerHTML=sheetHTML(a)+`<button class="btn sm" onclick="doPrint('${id}')">${icon("printer",16)}印刷</button> <button class="btn sm" onclick="sharePdfSheet('${id}')">${icon("pdf",16)}PDF保存・共有</button>`;
     wrap.classList.remove("hide");
     const sheet=wrap.querySelector(".sheet");
     const scale=Math.min(1,(wrap.clientWidth-24)/sheet.offsetWidth);
@@ -675,6 +708,7 @@ async function sharePdfSheet(id){
 
 /* ================= 起動 ================= */
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+initIcons();
 loadSettings();
 renderList(); updateBadge();
 sync(false);
