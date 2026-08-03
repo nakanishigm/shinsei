@@ -69,6 +69,10 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:80px;background:#333;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:30;opacity:0;transition:.3s;pointer-events:none;max-width:90%}
 .toast.on{opacity:1}
 .note{font-size:12px;color:var(--gray);line-height:1.6;margin-top:8px}
+.pwwrap{position:relative}
+.pwwrap input{padding-right:46px}
+.pwtoggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--gray);padding:8px;cursor:pointer;line-height:0}
+.pwtoggle:active{color:var(--blue)}
 /* ---- 様式（印刷）表示 ---- */
 #sheetWrap{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto}
 .sheet{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;color:#000;width:174mm;transform-origin:top left;background:#fff;padding:6mm}
@@ -170,13 +174,19 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
         <option>部長</option><option>総務課長</option><option>常務</option><option>社長</option><option>会長</option>
       </select>
       <label>承認キー（部長・総務課長・常務のみ必要）</label>
-      <input id="setKey" type="password" placeholder="役職ごとの承認キー">
+      <div class="pwwrap">
+        <input id="setKey" type="password" placeholder="役職ごとの承認キー">
+        <button type="button" class="pwtoggle" onclick="togglePw('setKey',this)" title="表示/非表示"><span class="ic" data-ic="eye" data-s="18"></span></button>
+      </div>
       <p class="note">承認するのは部長（土木部などのメンバー）、総務課長（総務課のメンバー）、常務（部長本人の申請）です。社長・会長は承認キーなしで役職を選ぶと、新着申請が「一覧」タブのバッジで通知され、閲覧・コメントできます。</p>
     </div>
     <div class="card">
       <h2>管理者設定（管理者のみ）</h2>
       <label>管理者キー</label>
-      <input id="setAdminKey" type="password" placeholder="管理者キー（通常は空欄のまま）">
+      <div class="pwwrap">
+        <input id="setAdminKey" type="password" placeholder="管理者キー（通常は空欄のまま）">
+        <button type="button" class="pwtoggle" onclick="togglePw('setAdminKey',this)" title="表示/非表示"><span class="ic" data-ic="eye" data-s="18"></span></button>
+      </div>
       <p class="note">管理者キーを入力すると、申請の詳細画面から誤登録データの削除ができます。一般の方は空欄のままにしてください。</p>
     </div>
     <button class="btn" onclick="saveSettings()">設定を保存</button>
@@ -246,7 +256,9 @@ const ICONS = {
   trash:    '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>',
   chat:     '<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/>',
   check:    '<path d="m4.5 12.5 5 5L19.5 6.5"/>',
-  x:        '<path d="M18 6 6 18M6 6l12 12"/>'
+  x:        '<path d="M18 6 6 18M6 6l12 12"/>',
+  eye:      '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  eyeoff:   '<path d="M17.9 17.9A10.6 10.6 0 0 1 12 19c-6.5 0-10-7-10-7a17.6 17.6 0 0 1 4.1-4.9"/><path d="M9.9 5.2A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17.7 17.7 0 0 1-2.2 3.1"/><path d="m3 3 18 18"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'
 };
 function icon(name, size, sw){
   size = size || 18; sw = sw || 2;
@@ -254,6 +266,13 @@ function icon(name, size, sw){
 }
 function initIcons(){
   document.querySelectorAll(".ic[data-ic]").forEach(el=>{ el.innerHTML = icon(el.dataset.ic, Number(el.dataset.s)||18); });
+}
+// キー入力欄の表示/非表示切替（目のボタン）
+function togglePw(id, btn){
+  const el = $(id);
+  const show = el.type === "password";
+  el.type = show ? "text" : "password";
+  btn.innerHTML = icon(show ? "eyeoff" : "eye", 18);
 }
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); setTimeout(()=>t.classList.remove("on"), 2600); }
 function saveLocal(){ localStorage.setItem("shinsei_apps", JSON.stringify(APPS)); localStorage.setItem("shinsei_queue", JSON.stringify(QUEUE)); }
