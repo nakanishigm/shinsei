@@ -153,8 +153,8 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
         <div><label>名</label><input id="setMei" placeholder="例：太郎"></div>
       </div>
       <div class="row">
-        <div><label>所属（部）</label><input id="setBu" placeholder="例：土木部"></div>
-        <div><label>所属（課）</label><input id="setKa" placeholder="例：監理課"></div>
+        <div><label>所属（部）</label><select id="setBu"></select></div>
+        <div><label>所属（課）</label><select id="setKa"></select></div>
       </div>
       <p class="note">決裁完了・却下のお知らせは「一覧」タブのバッジでお知らせします（メールアドレスは不要です）。</p>
     </div>
@@ -218,6 +218,13 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
    記入すると各スマホでの同期URL入力が不要になり、開いた瞬間から同期されます。
    空欄("")のままの場合は、従来どおり各端末の設定タブで入力します。 */
 const SYNC_URL = "https://script.google.com/macros/s/AKfycbzTc3fGYHO1hjGTn8sdJ5v5OtBRX4gwV5UNJAbi4UPkycMhVpZjvoKqyVtw3Z2kHSBfSQ/exec";
+
+/* 所属（部・課）の選択肢。組織変更時はここを編集してください。
+   部を選ぶと、その部の課だけが選べます。 */
+const SOSHIKI = {
+  "土木部": ["監理課", "工事課"],
+  "総務部": ["総務課"]
+};
 
 /* ================= 基本データ ================= */
 const TYPE_NAMES = {kyuka:"休暇届", hankyu:"（半休）早退・遅刻届", kyujitsu:"休日出勤事前申請書", yakan:"夜間出勤事前申請書"};
@@ -293,16 +300,31 @@ function showTab(name){
 }
 
 /* ================= 設定 ================= */
+// 所属プルダウン（部→課の連動）
+function fillKa(bu, selected){
+  const sel=$("setKa");
+  const list=(SOSHIKI[bu]||[]).slice();
+  if(selected && !list.includes(selected)) list.push(selected);   // 旧設定値も選択肢に残す
+  sel.innerHTML=list.map(k=>`<option${k===selected?" selected":""}>${esc(k)}</option>`).join("");
+}
+function initSoshiki(){
+  const buSel=$("setBu");
+  const keys=Object.keys(SOSHIKI);
+  if(S.bu && !keys.includes(S.bu)) keys.push(S.bu);
+  buSel.innerHTML=keys.map(b=>`<option>${esc(b)}</option>`).join("");
+  buSel.onchange=()=>fillKa(buSel.value, (SOSHIKI[buSel.value]||[])[0]||"");
+}
 function loadSettings(){
   $("setSei").value=S.sei||""; $("setMei").value=S.mei||"";
-  $("setBu").value=S.bu||""; $("setKa").value=S.ka||"";
+  $("setBu").value=S.bu||Object.keys(SOSHIKI)[0];
+  fillKa($("setBu").value, S.ka||(SOSHIKI[$("setBu").value]||[])[0]||"");
   $("setUrl").value=S.url||""; $("setRole").value=S.role||""; $("setKey").value=S.key||"";
   $("setAdminKey").value=S.adminKey||"";
   if(SYNC_URL){ $("urlInputWrap").classList.add("hide"); $("urlBuiltin").classList.remove("hide"); }
 }
 function saveSettings(){
   const sei=$("setSei").value.trim(), mei=$("setMei").value.trim();
-  const bu=$("setBu").value.trim(), ka=$("setKa").value.trim();
+  const bu=$("setBu").value, ka=$("setKa").value;
   S={sei:sei, mei:mei, bu:bu, ka:ka,
      name:(sei+" "+mei).trim(), dept:(bu+(ka?" "+ka:"")).trim(),
      url:$("setUrl").value.trim(), role:$("setRole").value, key:$("setKey").value.trim(),
@@ -728,6 +750,7 @@ async function sharePdfSheet(id){
 /* ================= 起動 ================= */
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 initIcons();
+initSoshiki();
 loadSettings();
 renderList(); updateBadge();
 sync(false);
