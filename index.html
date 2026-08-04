@@ -306,8 +306,9 @@ function fillKa(bu, selected){
   const sel=$("setKa");
   const list=(SOSHIKI[bu]||[]).slice();
   if(selected && !list.includes(selected)) list.push(selected);   // 旧設定値も選択肢に残す
-  if(!list.length){ sel.innerHTML=`<option value="">－</option>`; return; }  // 課がない所属
-  sel.innerHTML=list.map(k=>`<option${k===selected?" selected":""}>${esc(k)}</option>`).join("");
+  // 「－」（課なし）はどの所属でも選択可能（例：土木部長は土木部＋課なし）
+  sel.innerHTML=`<option value=""${selected?"":" selected"}>－</option>` +
+    list.map(k=>`<option${k===selected?" selected":""}>${esc(k)}</option>`).join("");
 }
 function initSoshiki(){
   const buSel=$("setBu");
@@ -318,8 +319,10 @@ function initSoshiki(){
 }
 function loadSettings(){
   $("setSei").value=S.sei||""; $("setMei").value=S.mei||"";
-  $("setBu").value=S.bu||Object.keys(SOSHIKI)[0];
-  fillKa($("setBu").value, S.ka||(SOSHIKI[$("setBu").value]||[])[0]||"");
+  const bu0=S.bu||Object.keys(SOSHIKI)[0];
+  $("setBu").value=bu0;
+  // 設定済みなら保存値を尊重（「－」＝空欄も保持）。未設定なら先頭の課を初期表示
+  fillKa(bu0, S.bu ? (S.ka||"") : ((SOSHIKI[bu0]||[])[0]||""));
   $("setUrl").value=S.url||""; $("setRole").value=S.role||""; $("setKey").value=S.key||"";
   $("setAdminKey").value=S.adminKey||"";
   if(SYNC_URL){ $("urlInputWrap").classList.add("hide"); $("urlBuiltin").classList.remove("hide"); }
