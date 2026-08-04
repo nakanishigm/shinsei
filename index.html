@@ -223,7 +223,8 @@ const SYNC_URL = "https://script.google.com/macros/s/AKfycbzTc3fGYHO1hjGTn8sdJ5v
    部を選ぶと、その部の課だけが選べます。 */
 const SOSHIKI = {
   "土木部": ["監理課", "工事課"],
-  "総務部": ["総務課"]
+  "総務課": [],
+  "取締役": []
 };
 
 /* ================= 基本データ ================= */
@@ -305,6 +306,7 @@ function fillKa(bu, selected){
   const sel=$("setKa");
   const list=(SOSHIKI[bu]||[]).slice();
   if(selected && !list.includes(selected)) list.push(selected);   // 旧設定値も選択肢に残す
+  if(!list.length){ sel.innerHTML=`<option value="">－</option>`; return; }  // 課がない所属
   sel.innerHTML=list.map(k=>`<option${k===selected?" selected":""}>${esc(k)}</option>`).join("");
 }
 function initSoshiki(){
