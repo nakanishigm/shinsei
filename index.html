@@ -51,6 +51,15 @@ textarea{min-height:70px}
 .item .meta{font-size:12px;color:var(--gray);margin-top:4px}
 .st{font-size:11px;padding:2px 8px;border-radius:10px;color:#fff;white-space:nowrap}
 .st.申請中{background:var(--wait)}.st.決裁完了{background:var(--ok)}.st.却下{background:var(--ng)}
+/* 有給休暇：カレンダー入力のご案内 */
+.calnote{background:#fff7e8;border:1.5px solid #f0b23c;border-left:5px solid #e8710a;border-radius:10px;padding:10px 12px;margin:0 0 12px}
+.calnote.ok{background:#eef7f0;border-color:#9ccfa8;border-left-color:var(--ok)}
+.calnote-h{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:bold;color:#8a4b00}
+.calnote.ok .calnote-h{color:#166a2e}
+.calnote-b{font-size:13px;line-height:1.7;color:#4a3a22;margin-top:5px}
+.calnote.ok .calnote-b{color:#2d4a35}
+.calnote-b b{color:#c0400a}
+.calnote-i{background:#fff;border:1px solid #f0d6a8;border-radius:8px;padding:7px 10px;margin-top:7px;font-size:13px;font-weight:bold;color:var(--blue-d);cursor:pointer}
 .st.取下げ{background:var(--gray)}.st.送信待ち{background:#7a869a}
 .empty{text-align:center;color:var(--gray);padding:30px 0;font-size:13px}
 .hide{display:none}
@@ -241,6 +250,8 @@ let S = JSON.parse(localStorage.getItem("shinsei_settings") || "{}");
 let APPS = JSON.parse(localStorage.getItem("shinsei_apps") || "[]");
 let QUEUE = JSON.parse(localStorage.getItem("shinsei_queue") || "[]");
 let SEEN = JSON.parse(localStorage.getItem("shinsei_seen") || "{}");
+// 有給休暇の決裁後、LINE WORKSカレンダーへ入力済みにしたものを記録
+let CALDONE = JSON.parse(localStorage.getItem("shinsei_caldone") || "{}");
 // 旧バージョンからの引き継ぎ（氏名・所属を一体で保存していた場合）
 if(!S.sei && S.name){ const p=S.name.split(/[ 　]+/); S.sei=p[0]||""; S.mei=p.slice(1).join(" "); }
 if(!S.bu && S.dept){ const p=S.dept.split(/[ 　]+/); S.bu=p[0]||""; S.ka=p.slice(1).join(" "); }
@@ -453,9 +464,28 @@ function unreadList(){
 function markSeen(a){
   SEEN[a.id]=stampOf(a); localStorage.setItem("shinsei_seen", JSON.stringify(SEEN)); updateBadge();
 }
+/* ===== 有給休暇：決裁後のLINE WORKSカレンダー入力リマインド ===== */
+// 決裁完了した自分の有給休暇のうち、まだカレンダー入力済みにしていないもの
+function calendarTodos(){
+  if(!S.name) return [];
+  return APPS.filter(a=> a.type==="kyuka" && a.kind==="有給休暇"
+    && a.status==="決裁完了" && a.name===S.name && !CALDONE[a.id]);
+}
+function needsCalendar(a){
+  return a && a.type==="kyuka" && a.kind==="有給休暇" && a.status==="決裁完了";
+}
+function calDone(id){
+  CALDONE[id]=1; localStorage.setItem("shinsei_caldone", JSON.stringify(CALDONE));
+  closeModal(); toast("カレンダー入力済みにしました"); renderList(); updateBadge();
+}
+function calUndo(id){
+  delete CALDONE[id]; localStorage.setItem("shinsei_caldone", JSON.stringify(CALDONE));
+  closeModal(); renderList(); updateBadge();
+}
+
 function updateBadge(){
   $("tb-approve").dataset.n = String(pendingForMe().length);
-  $("tb-list").dataset.n = String(unreadList().length);
+  $("tb-list").dataset.n = String(unreadList().length + calendarTodos().length);
 }
 function renderApprove(){
   updateBadge();
@@ -480,7 +510,16 @@ function renderList(){
   if(f==="mine") arr=arr.filter(a=>a.name===S.name);
   if(f==="pending") arr=arr.filter(a=>a.status==="申請中");
   if(f==="done") arr=arr.filter(a=>a.status==="決裁完了");
-  $("listBody").innerHTML = arr.length ? arr.map(itemHTML).join("") : "<div class='empty'>申請はまだありません</div>";
+  const todo = calendarTodos();
+  let banner="";
+  if(todo.length){
+    banner = `<div class="calnote">
+      <div class="calnote-h">${icon("calendar",17)} LINE WORKSカレンダーへの入力をお願いします</div>
+      <div class="calnote-b">有給休暇が決裁されました。カレンダーに<b>「終日」</b>の予定を登録し、件名に<b>「有休」</b>と入力してください。</div>
+      ${todo.map(a=>`<div class="calnote-i" onclick="openDetail('${a.id}')">${wareki(a.fromDate)}${a.toDate&&a.toDate!==a.fromDate?" 〜 "+wareki(a.toDate):""}（${esc(a.days||"?")}日間）</div>`).join("")}
+    </div>`;
+  }
+  $("listBody").innerHTML = banner + (arr.length ? arr.map(itemHTML).join("") : "<div class='empty'>申請はまだありません</div>");
 }
 function itemHTML(a){
   const queued = QUEUE.some(q=>q.app && q.app.id===a.id);
@@ -519,6 +558,21 @@ function openDetail(id){
   if(a.status==="却下") dl+=`<dt>却下</dt><dd>${esc(a.rejectedBy||"")}<br>${esc(a.rejectReason||"")}</dd>`;
   if(a.pdfUrl) dl+=`<dt>書類PDF</dt><dd><a href="${a.pdfUrl}" target="_blank">Driveで開く</a></dd>`;
   dl+=`</dl>`;
+
+  // 有給休暇の決裁後：LINE WORKSカレンダー入力のご案内
+  if(needsCalendar(a)){
+    const mine = (a.name===S.name);
+    const done = !!CALDONE[a.id];
+    dl = `<div class="calnote ${done?'ok':''}">
+      <div class="calnote-h">${icon(done?"check":"calendar",17)} ${done?"カレンダー入力済み":"LINE WORKSカレンダーに予定を入力してください"}</div>
+      <div class="calnote-b">${mine
+        ? `休む日の予定を<b>「終日」</b>で登録し、件名に<b>「有休」</b>と入力してください。誰がいつ休むのかを全員が確認できるようにするためです。`
+        : `この申請は決裁済みです。<b>申請者本人</b>がLINE WORKSカレンダーに「終日／有休」で登録します。`}</div>
+      ${mine ? (done
+        ? `<button class="btn sub" style="margin:8px 0 0" onclick="calUndo('${a.id}')">入力済みを取り消す</button>`
+        : `<button class="btn ok" style="margin:8px 0 0" onclick="calDone('${a.id}')">${icon("check",17)}カレンダーに入力しました</button>`) : ""}
+    </div>` + dl;
+  }
 
   // コメント欄（役職者・申請者が書き込めます）
   let cmt=`<div style="border-top:1px solid var(--line);padding-top:10px;margin-top:4px"><b style="font-size:14px;color:var(--blue-d)">${icon("chat",15)} コメント</b>`;
