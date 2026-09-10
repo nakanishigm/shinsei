@@ -113,11 +113,16 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
 <main>
   <!-- ============ 申請タブ ============ -->
   <section id="tab-new">
+    <div class="calnote hide" id="needSetup">
+      <div class="calnote-h">はじめに「設定」で氏名・所属を登録してください</div>
+      <div class="calnote-b">本人情報が登録されていません。右下の「設定」タブで姓・名と所属を入力し、「設定を保存」を押してください。<b>登録しないと申請できません。</b></div>
+      <button class="btn" style="margin:8px 0 0" onclick="showTab('set')">設定を開く</button>
+    </div>
     <div class="card" id="typeSelect">
       <h2>新規申請（種類を選択）</h2>
       <div class="typegrid">
         <button onclick="openForm('kyuka')"><span class="icwrap c1"><span class="ic" data-ic="calendar" data-s="24"></span></span>休暇届</button>
-        <button onclick="openForm('hankyu')"><span class="icwrap c2"><span class="ic" data-ic="clock" data-s="24"></span></span>（半休）早退・遅刻届</button>
+        <button onclick="openForm('hankyu')"><span class="icwrap c2"><span class="ic" data-ic="clock" data-s="24"></span></span>半休届</button>
         <button onclick="openForm('kyujitsu')"><span class="icwrap c3"><span class="ic" data-ic="sun" data-s="24"></span></span>休日出勤<br>事前申請書</button>
         <button onclick="openForm('yakan')"><span class="icwrap c4"><span class="ic" data-ic="moon" data-s="24"></span></span>夜間出勤<br>事前申請書</button>
       </div>
@@ -187,7 +192,7 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
         <input id="setKey" type="password" placeholder="役職ごとの承認キー">
         <button type="button" class="pwtoggle" onclick="togglePw('setKey',this)" title="表示/非表示"><span class="ic" data-ic="eye" data-s="18"></span></button>
       </div>
-      <p class="note">承認するのは部長（土木部などのメンバー）、総務課長（総務課のメンバー）、常務（部長本人の申請）です。社長・会長は承認キーなしで役職を選ぶと、新着申請が「一覧」タブのバッジで通知され、閲覧・コメントできます。</p>
+      <p class="note">承認するのは部長（土木部などのメンバー）、総務課長（総務課のメンバー）、常務（部長本人・総務課長本人の申請）です。社長・会長は承認キーなしで役職を選ぶと、新着申請が「一覧」タブのバッジで通知され、閲覧・コメントできます。</p>
     </div>
     <div class="card">
       <h2>管理者設定（管理者のみ）</h2>
@@ -199,6 +204,8 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
       <p class="note">管理者キーを入力すると、申請の詳細画面から誤登録データの削除ができます。一般の方は空欄のままにしてください。</p>
     </div>
     <button class="btn" onclick="saveSettings()">設定を保存</button>
+    <button class="btn sub" onclick="copySettingsUrl()">設定を引き継ぐURLをコピー</button>
+    <p class="note">機種変更のときや、まれに本人情報が消えてしまう端末では、上のURLをホーム画面に追加し直すと、次からは自動で本人情報が入ります（承認キーは安全のため含まれません）。</p>
     <p class="note" style="text-align:center">㈱中西組　申請・休暇届アプリ v1.0</p>
   </section>
 </main>
@@ -237,16 +244,54 @@ const SOSHIKI = {
 };
 
 /* ================= 基本データ ================= */
-const TYPE_NAMES = {kyuka:"休暇届", hankyu:"（半休）早退・遅刻届", kyujitsu:"休日出勤事前申請書", yakan:"夜間出勤事前申請書"};
-// 承認者：部長本人の申請 → 常務、総務課のメンバー → 総務課長、それ以外（土木部以下）→ 部長（1名承認）
+const TYPE_NAMES = {kyuka:"休暇届", hankyu:"半休届", kyujitsu:"休日出勤事前申請書", yakan:"夜間出勤事前申請書"};
+// 承認者：部長本人・総務課長本人の申請 → 常務、総務課のメンバー → 総務課長、それ以外（土木部以下）→ 部長（1名承認）
 // 承認者以外の役職（社長・会長など）は通知で閲覧・コメントできます
 const APPROVER_ROLES = ["部長","総務課長","常務"];
 const ALL_ROLES = ["部長","総務課長","常務","社長","会長"];
 function routeFor(bu, ka, role){
-  if(role==="部長") return ["常務"];
+  // 部長本人・総務課長本人の申請は常務が承認（自分で自分を承認させない）
+  if(role==="部長" || role==="総務課長") return ["常務"];
   return (String(bu||"")+String(ka||"")).includes("総務") ? ["総務課長"] : ["部長"];
 }
+/* ===== 本人情報の二重保存 =====
+   端末の空き容量不足やブラウザのデータ整理でlocalStorageが消えることがあるため、
+   姓名・所属・役職はCookieにも控えを持ち、消えていたら自動で復元する。
+   ※ 承認キー・管理者キーは控えを取らない（Cookieは通信時に送出されるため）。 */
+const BK = "shinsei_bk";
+function backupSettings(s){
+  try{
+    const b = {sei:s.sei||"", mei:s.mei||"", bu:s.bu||"", ka:s.ka||"", role:s.role||""};
+    document.cookie = BK+"="+encodeURIComponent(JSON.stringify(b))
+      +";max-age=34560000;path=/;SameSite=Lax";   // 400日
+  }catch(e){}
+}
+function readBackup(){
+  try{
+    const m = document.cookie.match(new RegExp("(?:^|; )"+BK+"=([^;]*)"));
+    return m ? JSON.parse(decodeURIComponent(m[1])) : null;
+  }catch(e){ return null; }
+}
+// URLに ?s=... が付いていれば、そこから復元（ホーム画面アイコンに設定を持たせる用）
+function readFromUrl(){
+  try{
+    const p = new URLSearchParams(location.search).get("s");
+    return p ? JSON.parse(decodeURIComponent(escape(atob(p.replace(/-/g,"+").replace(/_/g,"/"))))) : null;
+  }catch(e){ return null; }
+}
+
 let S = JSON.parse(localStorage.getItem("shinsei_settings") || "{}");
+// 本人情報が失われていたら、URL → Cookie の順に復元する
+if(!S.sei && !S.mei){
+  const r = readFromUrl() || readBackup();
+  if(r && (r.sei || r.mei)){
+    S = Object.assign({}, S, r,
+        {name:((r.sei||"")+" "+(r.mei||"")).trim(),
+         dept:((r.bu||"")+((r.ka)?" "+r.ka:"")).trim()});
+    localStorage.setItem("shinsei_settings", JSON.stringify(S));
+    setTimeout(()=>toast("本人情報を復元しました"), 800);
+  }
+}
 let APPS = JSON.parse(localStorage.getItem("shinsei_apps") || "[]");
 let QUEUE = JSON.parse(localStorage.getItem("shinsei_queue") || "[]");
 let SEEN = JSON.parse(localStorage.getItem("shinsei_seen") || "{}");
@@ -346,8 +391,30 @@ function saveSettings(){
      url:$("setUrl").value.trim(), role:$("setRole").value, key:$("setKey").value.trim(),
      adminKey:$("setAdminKey").value.trim()};
   localStorage.setItem("shinsei_settings", JSON.stringify(S));
+  backupSettings(S);
   toast("設定を保存しました");
+  renderNeedSetup();
   sync(false);
+}
+
+/* 本人情報が未設定のときは申請タブの先頭で知らせる（消えたことに気づけるように） */
+function renderNeedSetup(){
+  const el = $("needSetup"); if(!el) return;
+  if(S.sei || S.mei){ el.classList.add("hide"); return; }
+  el.classList.remove("hide");
+}
+/* 設定を引き継ぐURL（ホーム画面アイコンに本人情報を持たせる） */
+function settingsUrl(){
+  const b = {sei:S.sei||"", mei:S.mei||"", bu:S.bu||"", ka:S.ka||"", role:S.role||""};
+  const p = btoa(unescape(encodeURIComponent(JSON.stringify(b))))
+              .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  return location.origin + location.pathname + "?s=" + p;
+}
+async function copySettingsUrl(){
+  if(!S.sei && !S.mei){ toast("先に姓・名を入力して保存してください"); return; }
+  const u = settingsUrl();
+  try{ await navigator.clipboard.writeText(u); toast("URLをコピーしました"); }
+  catch(e){ prompt("このURLをコピーしてください", u); }
 }
 
 /* ================= 同期 ================= */
@@ -394,9 +461,9 @@ function openForm(type){
     h += kindSelect();
     h += field("事由","f_reason","textarea") + field("備考","f_note","textarea");
   }else if(type==="hankyu"){
-    h += `<label>区分</label><select id="f_subtype"><option>半休</option><option>早退</option><option>遅刻</option></select>`;
+    h += `<label>区分</label><select id="f_subtype"><option>午前半休</option><option>午後半休</option></select>`;
     h += field("日付","f_date","date");
-    h += `<label>時刻（早退・遅刻の時刻／半休は開始時刻）</label><input id="f_time" type="time">`;
+    h += `<label>時刻（休む時間帯の開始〜終了の目安）</label><input id="f_time" type="time">`;
     h += kindSelect();
     h += field("事由","f_reason","textarea") + field("備考","f_note","textarea");
   }else{
@@ -466,13 +533,28 @@ function markSeen(a){
 }
 /* ===== 有給休暇：決裁後のLINE WORKSカレンダー入力リマインド ===== */
 // 決裁完了した自分の有給休暇のうち、まだカレンダー入力済みにしていないもの
+// カレンダー登録が必要な申請か（有給休暇の休暇届 と すべての半休届）
+function calTarget(a){
+  if(!a) return false;
+  if(a.type==="hankyu") return true;
+  return a.type==="kyuka" && a.kind==="有給休暇";
+}
+// カレンダーに登録する内容（件名と予定の種類）
+function calSpec(a){
+  if(a.type==="hankyu"){
+    const ap = String(a.subtype||"").includes("午前") ? "午前" : "午後";
+    return {title:"半休（"+ap+"）", allday:false,
+            how:"休む時間帯（"+ap+"）で登録"};
+  }
+  return {title:"有休", allday:true, how:"終日の予定で登録"};
+}
 function calendarTodos(){
   if(!S.name) return [];
-  return APPS.filter(a=> a.type==="kyuka" && a.kind==="有給休暇"
-    && a.status==="決裁完了" && a.name===S.name && !CALDONE[a.id]);
+  return APPS.filter(a=> calTarget(a) && a.status==="決裁完了"
+    && a.name===S.name && !CALDONE[a.id]);
 }
 function needsCalendar(a){
-  return a && a.type==="kyuka" && a.kind==="有給休暇" && a.status==="決裁完了";
+  return calTarget(a) && a.status==="決裁完了";
 }
 function calDone(id){
   CALDONE[id]=1; localStorage.setItem("shinsei_caldone", JSON.stringify(CALDONE));
@@ -515,8 +597,15 @@ function renderList(){
   if(todo.length){
     banner = `<div class="calnote">
       <div class="calnote-h">${icon("calendar",17)} LINE WORKSカレンダーへの入力をお願いします</div>
-      <div class="calnote-b">有給休暇が決裁されました。カレンダーに<b>「終日」</b>の予定を登録し、件名に<b>「有休」</b>と入力してください。</div>
-      ${todo.map(a=>`<div class="calnote-i" onclick="openDetail('${a.id}')">${wareki(a.fromDate)}${a.toDate&&a.toDate!==a.fromDate?" 〜 "+wareki(a.toDate):""}（${esc(a.days||"?")}日間）</div>`).join("")}
+      <div class="calnote-b">下記が決裁されました。カレンダーに予定を登録してください。</div>
+      ${todo.map(a=>{
+        const c=calSpec(a);
+        const when = a.type==="hankyu"
+          ? wareki(a.date)+"　"+esc(a.subtype||"")
+          : wareki(a.fromDate)+(a.toDate&&a.toDate!==a.fromDate?" 〜 "+wareki(a.toDate):"")+"（"+esc(a.days||"?")+"日間）";
+        return `<div class="calnote-i" onclick="openDetail('${a.id}')">${when}
+          <div style="font-weight:normal;font-size:12px;color:var(--gray);margin-top:3px">${esc(c.how)}／件名「<b style="color:#c0400a">${esc(c.title)}</b>」</div></div>`;
+      }).join("")}
     </div>`;
   }
   $("listBody").innerHTML = banner + (arr.length ? arr.map(itemHTML).join("") : "<div class='empty'>申請はまだありません</div>");
@@ -565,9 +654,9 @@ function openDetail(id){
     const done = !!CALDONE[a.id];
     dl = `<div class="calnote ${done?'ok':''}">
       <div class="calnote-h">${icon(done?"check":"calendar",17)} ${done?"カレンダー入力済み":"LINE WORKSカレンダーに予定を入力してください"}</div>
-      <div class="calnote-b">${mine
-        ? `休む日の予定を<b>「終日」</b>で登録し、件名に<b>「有休」</b>と入力してください。誰がいつ休むのかを全員が確認できるようにするためです。`
-        : `この申請は決裁済みです。<b>申請者本人</b>がLINE WORKSカレンダーに「終日／有休」で登録します。`}</div>
+      <div class="calnote-b">${(()=>{ const c=calSpec(a); return mine
+        ? `予定を<b>${esc(c.how)}</b>し、件名に<b>「${esc(c.title)}」</b>と入力してください。誰がいつ休むのかを全員が確認できるようにするためです。`
+        : `この申請は決裁済みです。<b>申請者本人</b>がLINE WORKSカレンダーに「${esc(c.how)}／件名 ${esc(c.title)}」で登録します。`; })()}</div>
       ${mine ? (done
         ? `<button class="btn sub" style="margin:8px 0 0" onclick="calUndo('${a.id}')">入力済みを取り消す</button>`
         : `<button class="btn ok" style="margin:8px 0 0" onclick="calDone('${a.id}')">${icon("check",17)}カレンダーに入力しました</button>`) : ""}
@@ -671,7 +760,7 @@ function sheetHTML(a){
       <p class="small">原則として、１週間前までに、遅くとも前々日までに所定の手続により会社に届け出をして下さい。</p></div>`;
   }
   if(a.type==="hankyu"){
-    return `<div class="sheet"><div class="right">${wareki(a.createdAt?a.createdAt.slice(0,10):"")}</div><h1>（半休）早退・遅刻　届</h1>
+    return `<div class="sheet"><div class="right">${wareki(a.createdAt?a.createdAt.slice(0,10):"")}</div><h1>半休　届</h1>
       ${stampTable(a,"26%")}
       <table style="width:45%;margin-top:4mm"><tr><td class="label">所　属</td><td>${esc(a.dept)}</td></tr><tr><td class="label">氏　名</td><td>${esc(a.name)}</td></tr></table>
       <table style="margin-top:4mm"><tr><td class="label">期　間</td><td class="center">${wareki(a.date)}　${esc(a.time)}</td><td class="center" style="width:26mm">${esc(a.subtype)}</td></tr>
@@ -811,6 +900,8 @@ if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catc
 initIcons();
 initSoshiki();
 loadSettings();
+renderNeedSetup();
+if(S.sei||S.mei) backupSettings(S);   // 既存利用者にも控えを作る
 renderList(); updateBadge();
 sync(false);
 setInterval(()=>sync(false), 60000);
