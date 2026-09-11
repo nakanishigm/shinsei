@@ -170,7 +170,9 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
         <div><label>所属（部）</label><select id="setBu"></select></div>
         <div><label>所属（課）</label><select id="setKa"></select></div>
       </div>
-      <p class="note">決裁完了・却下のお知らせは「一覧」タブのバッジでお知らせします（メールアドレスは不要です）。</p>
+      <label>メールアドレス（任意・お知らせメール用）</label>
+      <input id="setMail" type="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="例：nakanishi@nakanishigm.com">
+      <p class="note">メールアドレスを登録しておくと、<b>申請が決裁・却下されたときにお知らせメール</b>が届きます（有休・半休はカレンダー入力の案内つき）。空欄でもアプリは問題なく使えます。決裁完了・却下は「一覧」タブのバッジでもお知らせします。</p>
     </div>
     <div class="card" id="urlCard">
       <h2>自動同期設定</h2>
@@ -261,7 +263,7 @@ function routeFor(bu, ka, role){
 const BK = "shinsei_bk";
 function backupSettings(s){
   try{
-    const b = {sei:s.sei||"", mei:s.mei||"", bu:s.bu||"", ka:s.ka||"", role:s.role||""};
+    const b = {sei:s.sei||"", mei:s.mei||"", bu:s.bu||"", ka:s.ka||"", role:s.role||"", mail:s.mail||""};
     document.cookie = BK+"="+encodeURIComponent(JSON.stringify(b))
       +";max-age=34560000;path=/;SameSite=Lax";   // 400日
   }catch(e){}
@@ -379,6 +381,7 @@ function loadSettings(){
   $("setBu").value=bu0;
   // 設定済みなら保存値を尊重（「－」＝空欄も保持）。未設定なら先頭の課を初期表示
   fillKa(bu0, S.bu ? (S.ka||"") : ((SOSHIKI[bu0]||[])[0]||""));
+  $("setMail").value=S.mail||"";
   $("setUrl").value=S.url||""; $("setRole").value=S.role||""; $("setKey").value=S.key||"";
   $("setAdminKey").value=S.adminKey||"";
   if(SYNC_URL){ $("urlInputWrap").classList.add("hide"); $("urlBuiltin").classList.remove("hide"); }
@@ -388,6 +391,7 @@ function saveSettings(){
   const bu=$("setBu").value, ka=$("setKa").value;
   S={sei:sei, mei:mei, bu:bu, ka:ka,
      name:(sei+" "+mei).trim(), dept:(bu+(ka?" "+ka:"")).trim(),
+     mail:$("setMail").value.trim(),
      url:$("setUrl").value.trim(), role:$("setRole").value, key:$("setKey").value.trim(),
      adminKey:$("setAdminKey").value.trim()};
   localStorage.setItem("shinsei_settings", JSON.stringify(S));
@@ -405,7 +409,7 @@ function renderNeedSetup(){
 }
 /* 設定を引き継ぐURL（ホーム画面アイコンに本人情報を持たせる） */
 function settingsUrl(){
-  const b = {sei:S.sei||"", mei:S.mei||"", bu:S.bu||"", ka:S.ka||"", role:S.role||""};
+  const b = {sei:S.sei||"", mei:S.mei||"", bu:S.bu||"", ka:S.ka||"", role:S.role||"", mail:S.mail||""};
   const p = btoa(unescape(encodeURIComponent(JSON.stringify(b))))
               .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
   return location.origin + location.pathname + "?s=" + p;
@@ -496,7 +500,7 @@ function v(id){ const el=$(id); return el?el.value.trim():""; }
 function submitForm(){
   const a={id:uid(), type:currentType, name:S.name, sei:S.sei, mei:S.mei,
            dept:S.dept||"", bu:S.bu||"", ka:S.ka||"",
-           role:S.role||"",
+           role:S.role||"", email:S.mail||"",
            createdAt:new Date().toISOString(), status:"申請中", step:0,
            route:routeFor(S.bu,S.ka,S.role), approvals:[], comments:[]};
   if(currentType==="kyuka"){
