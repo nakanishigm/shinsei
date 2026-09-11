@@ -174,6 +174,12 @@ dt{color:var(--gray);font-size:12px;padding-top:2px}
       <input id="setMail" type="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="例：nakanishi@nakanishigm.com">
       <p class="note">メールアドレスを登録しておくと、<b>申請が決裁・却下されたときにお知らせメール</b>が届きます（有休・半休はカレンダー入力の案内つき）。空欄でもアプリは問題なく使えます。決裁完了・却下は「一覧」タブのバッジでもお知らせします。</p>
     </div>
+    <div class="card">
+      <h2>スマホへのお知らせ</h2>
+      <button class="btn hide" id="notifyBtn" onclick="askNotify()">スマホに通知を出す（許可する）</button>
+      <p class="note" id="notifyNote"></p>
+      <p class="note">※ iPhone・iPadは<b>ホーム画面に追加したアプリ</b>から開いた場合のみ通知できます（Safariで開いただけでは出ません）。</p>
+    </div>
     <div class="card" id="urlCard">
       <h2>自動同期設定</h2>
       <div id="urlInputWrap">
@@ -385,6 +391,7 @@ function loadSettings(){
   $("setUrl").value=S.url||""; $("setRole").value=S.role||""; $("setKey").value=S.key||"";
   $("setAdminKey").value=S.adminKey||"";
   if(SYNC_URL){ $("urlInputWrap").classList.add("hide"); $("urlBuiltin").classList.remove("hide"); }
+  renderNotifyBtn();
 }
 function saveSettings(){
   const sei=$("setSei").value.trim(), mei=$("setMei").value.trim();
@@ -569,9 +576,89 @@ function calUndo(id){
   closeModal(); renderList(); updateBadge();
 }
 
+/* ===== 端末の通知（スマホのポップアップ＋ホーム画面アイコンのバッジ） =====
+   サーバもメールも使いません。アプリが新しい動きを見つけたら、その場で端末に出します。 */
+let NOTICED = JSON.parse(localStorage.getItem("shinsei_noticed") || "{}");
+
+function canNotify(){ return ("Notification" in window); }
+function notifyState(){ return canNotify() ? Notification.permission : "unsupported"; }
+
+// いま知らせるべきもの（承認待ち／自分の申請の結果）
+function noticeTargets(){
+  const out = [];
+  pendingForMe().forEach(a=>out.push({
+    key:"p|"+a.id, title:"承認のお願い",
+    body:(a.name||"")+"さんの"+TYPE_NAMES[a.type]}));
+  if(S.name) APPS.filter(a=>a.name===S.name && (a.status==="決裁完了"||a.status==="却下"))
+    .forEach(a=>out.push({
+      key:"s|"+a.id+"|"+a.status,
+      title:(a.status==="決裁完了" ? "決裁完了" : "却下")+"のお知らせ",
+      body:TYPE_NAMES[a.type]+"が"+(a.status==="決裁完了" ? "承認されました" : "却下されました")}));
+  return out;
+}
+function seedNoticed(){
+  const live={}; noticeTargets().forEach(x=>live[x.key]=1);
+  NOTICED = live; localStorage.setItem("shinsei_noticed", JSON.stringify(NOTICED));
+}
+async function showNotice(title, body, tag){
+  if(notifyState()!=="granted") return;
+  const opt = {body:body, tag:tag, icon:"icon-192.png", badge:"icon-192.png"};
+  try{
+    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    if(reg && reg.showNotification){ await reg.showNotification(title, opt); return; }
+  }catch(e){}
+  try{ new Notification(title, opt); }catch(e){}
+}
+async function askNotify(){
+  if(!canNotify()){ toast("この端末は通知に対応していません"); return; }
+  try{
+    const p = await Notification.requestPermission();
+    if(p==="granted"){
+      seedNoticed();                       // 今あるぶんは鳴らさない
+      renderNotifyBtn();
+      showNotice("通知をオンにしました","これから新しい申請・決裁をお知らせします","hello");
+      toast("通知をオンにしました");
+    }else{
+      renderNotifyBtn();
+      toast(p==="denied" ? "端末の設定でこのアプリの通知を許可してください" : "通知はオンになりませんでした");
+    }
+  }catch(e){ toast("通知を有効にできませんでした"); }
+}
+function renderNotifyBtn(){
+  const b=$("notifyBtn"), n=$("notifyNote"); if(!b||!n) return;
+  const st = notifyState();
+  if(st==="unsupported"){ b.classList.add("hide"); n.textContent="この端末（ブラウザ）は通知に対応していません。アプリ内のバッジでお知らせします。"; return; }
+  if(st==="granted"){ b.classList.add("hide"); n.innerHTML="<b style='color:var(--ok)'>通知はオンです。</b>新しい申請や決裁を、スマホの画面にお知らせします。"; return; }
+  b.classList.remove("hide");
+  b.textContent = "スマホに通知を出す（許可する）";
+  n.textContent = (st==="denied")
+    ? "通知がブロックされています。端末の設定＞通知 からこのアプリを許可してください。"
+    : "ボタンを押すと確認が出ます。「許可」を選ぶと、承認待ちや決裁をスマホの画面でお知らせします。";
+}
+// 新しいものだけ通知し、ホーム画面アイコンのバッジも更新する
+function runNotices(){
+  const t = noticeTargets();
+  try{
+    if(navigator.setAppBadge){
+      const n = pendingForMe().length + unreadList().length + calendarTodos().length;
+      n ? navigator.setAppBadge(n) : navigator.clearAppBadge();
+    }
+  }catch(e){}
+  if(notifyState()!=="granted") return;
+  const live={}; let changed=false;
+  t.forEach(x=>{
+    live[x.key]=1;
+    if(!NOTICED[x.key]){ changed=true; showNotice(x.title, x.body, x.key); }
+  });
+  if(changed || Object.keys(live).length !== Object.keys(NOTICED).length){
+    NOTICED = live; localStorage.setItem("shinsei_noticed", JSON.stringify(NOTICED));
+  }
+}
+
 function updateBadge(){
   $("tb-approve").dataset.n = String(pendingForMe().length);
   $("tb-list").dataset.n = String(unreadList().length + calendarTodos().length);
+  runNotices();
 }
 function renderApprove(){
   updateBadge();
@@ -905,6 +992,8 @@ initIcons();
 initSoshiki();
 loadSettings();
 renderNeedSetup();
+renderNotifyBtn();
+if(notifyState()==="granted" && !Object.keys(NOTICED).length) seedNoticed();  // 初回は鳴らさない
 if(S.sei||S.mei) backupSettings(S);   // 既存利用者にも控えを作る
 renderList(); updateBadge();
 sync(false);
